@@ -1,0 +1,2 @@
+# Motivation
+[Enet](https://github.com/zpl-c/enet.git) is a excellent C library that implements the reliable UDP protocol which is widely used in game industry. This repo presents the source-code level dissection of the Enet libray. I'm going to play with Enet APIs with the help of Gooletest unit testing framework bacause I'm a newbie in this field :^).

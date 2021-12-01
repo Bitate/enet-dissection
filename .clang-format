@@ -1,0 +1,18 @@
+# clang-format version 10
+
+TabWidth: 4
+Language: Cpp
+IndentWidth: 4
+ColumnLimit: 100
+Standard: c++11
+PointerAlignment: Left
+UseTab: ForIndentation
+AccessModifierOffset: -4
+BreakBeforeBraces: Allman
+NamespaceIndentation: All
+AlignAfterOpenBracket: Align
+AllowShortLambdasOnASingleLine: All
+AllowShortBlocksOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: All
+AllowShortCaseLabelsOnASingleLine: true
+BreakConstructorInitializers: BeforeComma
