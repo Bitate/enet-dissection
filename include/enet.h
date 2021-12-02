@@ -36,10 +36,6 @@
 #ifndef ENET_INCLUDE_H
 #define ENET_INCLUDE_H
 
-///
-#include <stdio.h>
-///
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -739,7 +735,7 @@ extern "C"
 		ENetAddress address; /**< Internet address of the peer */
 		void* data;          /**< Application private data, may be freely modified */
 		ENetPeerState state;
-		ENetChannel* channels;         /// array of channel pointers
+		ENetChannel* channels;         // array of channel pointers
 		size_t channelCount;           /**< Number of channels allocated for communication
 		                                  with peer */
 		enet_uint32 incomingBandwidth; /**< Downstream bandwidth of the client
@@ -801,7 +797,7 @@ extern "C"
 		enet_uint16 outgoingUnsequencedGroup;
 		enet_uint32 unsequencedWindow[ENET_PEER_UNSEQUENCED_WINDOW_SIZE / 32];
 		enet_uint32 eventData;
-		size_t totalWaitingData;
+		size_t totalWaitingData; // dispatched/waiting data count
 	} ENetPeer;
 
 	/** An ENet packet compressor for compressing UDP packets before socket
@@ -878,10 +874,10 @@ extern "C"
 		ENetChecksumCallback checksum; /**< callback the user can set to enable
 		                                  packet checksums for this host */
 		ENetCompressor compressor;
-		enet_uint8 packetData[2][ENET_PROTOCOL_MAXIMUM_MTU]; ///
+		enet_uint8 packetData[2][ENET_PROTOCOL_MAXIMUM_MTU]; //
 		ENetAddress receivedAddress;
-		enet_uint8* receivedData;         ///
-		size_t receivedDataLength;        ///
+		enet_uint8* receivedData;         //
+		size_t receivedDataLength;        //
 		enet_uint32 totalSentData;        /**< total data sent, user should reset to 0
 		                                     as needed to prevent overflow */
 		enet_uint32 totalSentPackets;     /**< total UDP packets sent, user should reset to
@@ -1781,10 +1777,10 @@ extern "C"
 	{
 		while (!enet_list_empty(&host->dispatchQueue))
 		{
-			/// obtain the first node in the host's dispatch queue
+			// obtain the first node in the host's dispatch queue
 			ENetPeer* peer = (ENetPeer*)enet_list_remove(enet_list_begin(&host->dispatchQueue));
 
-			/// mark peer as dispatched
+			// mark peer as dispatched
 			peer->needsDispatch = 0;
 
 			switch (peer->state)
@@ -2274,8 +2270,8 @@ extern "C"
 			return -1;
 		}
 
-		/// Trick: casting from ENetProtocol* into enet_unit8*
-		/// Note that ENetProtocol is packed by compiler.
+		// Trick: casting from ENetProtocol* into enet_unit8*
+		// Note that ENetProtocol is packed by compiler.
 		if (enet_peer_queue_incoming_command(
 		        peer, command, (const enet_uint8*)command + sizeof(ENetProtocolSendReliable),
 		        dataLength, ENET_PACKET_FLAG_RELIABLE, 0) == NULL)
@@ -2321,7 +2317,7 @@ extern "C"
 		unsequencedGroup = ENET_NET_TO_HOST_16(command->sendUnsequenced.unsequencedGroup);
 		index = unsequencedGroup % ENET_PEER_UNSEQUENCED_WINDOW_SIZE;
 
-		/// ???
+		// ???
 		if (unsequencedGroup < peer->incomingUnsequencedGroup)
 		{
 			unsequencedGroup += 0x10000;
@@ -2334,18 +2330,18 @@ extern "C"
 			return 0;
 		}
 
-		/// [0, 65535]
+		// [0, 65535]
 		unsequencedGroup &= 0xFFFF;
 
 		if (unsequencedGroup - index != peer->incomingUnsequencedGroup)
 		{
-			///
+			//
 			peer->incomingUnsequencedGroup = unsequencedGroup - index;
 			memset(peer->unsequencedWindow, 0, sizeof(peer->unsequencedWindow));
 		}
 		else if (peer->unsequencedWindow[index / 32] & (1 << (index % 32)))
 		{
-			/// If already processed that packet
+			// If already processed that packet
 			return 0;
 		}
 
@@ -2356,7 +2352,7 @@ extern "C"
 			return -1;
 		}
 
-		/// mark as sent
+		// mark as sent
 		peer->unsequencedWindow[index / 32] |= 1 << (index % 32);
 
 		return 0;
@@ -2824,7 +2820,7 @@ extern "C"
 		peer->earliestTimeout = 0;
 		roundTripTime = ENET_TIME_DIFFERENCE(host->serviceTime, receivedSentTime);
 
-		/// based upon new rtt, we adjust the throttle according
+		// based upon new rtt, we adjust the throttle according
 		enet_peer_throttle(peer, roundTripTime);
 		peer->roundTripTimeVariance -= peer->roundTripTimeVariance / 4;
 
@@ -2997,7 +2993,7 @@ extern "C"
 		enet_uint16 peerID, flags;
 		enet_uint8 sessionID;
 
-		/// ENetProtocolHeader has at least a peerID.
+		// ENetProtocolHeader has at least a peerID.
 		if (host->receivedDataLength < (size_t) & ((ENetProtocolHeader*)0)->sentTime)
 		{
 			return 0;
@@ -3011,8 +3007,8 @@ extern "C"
 		flags = peerID & ENET_PROTOCOL_HEADER_FLAG_MASK;
 		peerID &= ~(ENET_PROTOCOL_HEADER_FLAG_MASK | ENET_PROTOCOL_HEADER_SESSION_MASK);
 
-		/// If the header doesn't have sentTime field, the headerSize is 2 bytes
-		/// (size of peerID field)
+		// If the header doesn't have sentTime field, the headerSize is 2 bytes
+		// (size of peerID field)
 		headerSize = (flags & ENET_PROTOCOL_HEADER_FLAG_SENT_TIME
 		                  ? sizeof(ENetProtocolHeader)
 		                  : (size_t) & ((ENetProtocolHeader*)0)->sentTime);
@@ -3048,7 +3044,7 @@ extern "C"
 			}
 		}
 
-		/// Decompress data if needed.
+		// Decompress data if needed.
 		if (flags & ENET_PROTOCOL_HEADER_FLAG_COMPRESSED)
 		{
 			size_t originalSize;
@@ -3070,10 +3066,10 @@ extern "C"
 			memcpy(host->packetData[1], header, headerSize);
 			host->receivedData = host->packetData[1];
 			host->receivedDataLength =
-			    headerSize + originalSize; /// dataLenght = header + original size
+			    headerSize + originalSize; // dataLenght = header + original size
 		}
 
-		/// checksum validation
+		// checksum validation
 		if (host->checksum != NULL)
 		{
 			enet_uint32* checksum =
@@ -3096,19 +3092,19 @@ extern "C"
 		{
 			peer->address.host = host->receivedAddress.host;
 			peer->address.port = host->receivedAddress.port;
-			peer->incomingDataTotal += host->receivedDataLength; /// ?
-			peer->totalDataReceived += host->receivedDataLength; /// ?
+			peer->incomingDataTotal += host->receivedDataLength; // ?
+			peer->totalDataReceived += host->receivedDataLength; // ?
 		}
 
 		currentData = host->receivedData + headerSize;
 
-		/// aggregate packets
+		// aggregate packets
 		while (currentData < &host->receivedData[host->receivedDataLength])
 		{
 			enet_uint8 commandNumber;
 			size_t commandSize;
 
-			/// command and currentData point to same bytes array.
+			// command and currentData point to same bytes array.
 			command = (ENetProtocol*)currentData;
 
 			if (currentData + sizeof(ENetProtocolCommandHeader) >
@@ -3141,7 +3137,7 @@ extern "C"
 			command->header.reliableSequenceNumber =
 			    ENET_NET_TO_HOST_16(command->header.reliableSequenceNumber);
 
-			/// handle different commands
+			// handle different commands
 			switch (commandNumber)
 			{
 			case ENET_PROTOCOL_COMMAND_ACKNOWLEDGE:
@@ -3185,7 +3181,7 @@ extern "C"
 				break;
 
 			case ENET_PROTOCOL_COMMAND_SEND_RELIABLE:
-				/// command + commandSize == currentData
+				// command + commandSize == currentData
 				if (enet_protocol_handle_send_reliable(host, peer, command, &currentData))
 				{
 					goto commandError;
@@ -3292,8 +3288,8 @@ extern "C"
 	{
 		int packets;
 
-		/// why 256?
-		/// Is it because the receive buffer size is: 256 * 1024?
+		// why 256?
+		// Is it because the receive buffer size is: 256 * 1024?
 		for (packets = 0; packets < 256; ++packets)
 		{
 			int receivedLength;
@@ -3341,7 +3337,7 @@ extern "C"
 				}
 			}
 
-			/// handle all kinds of already received commands
+			// handle all kinds of already received commands
 			switch (enet_protocol_handle_incoming_commands(host, event))
 			{
 			case 1: return 1;
@@ -4283,7 +4279,7 @@ extern "C"
 			fragmentLength -= sizeof(enet_uint32);
 		}
 
-		/// If data length exceeds single fragment length.
+		// If data length exceeds single fragment length.
 		if (packet->dataLength > fragmentLength)
 		{
 			enet_uint32 fragmentCount = (packet->dataLength + fragmentLength - 1) / fragmentLength,
@@ -4293,7 +4289,7 @@ extern "C"
 			ENetList fragments;
 			ENetOutgoingCommand* fragment;
 
-			/// Can't fragment packet
+			// Can't fragment packet
 			if (fragmentCount > ENET_PROTOCOL_MAXIMUM_FRAGMENT_COUNT)
 			{
 				return -1;
@@ -5043,11 +5039,12 @@ extern "C"
 	}
 
 	/**
-	 * @brief append nodes in channel->incomingReliableCommands to the tail of
-	 * peer->dispatchedCommands.
+	 * @brief Move nodes in channel->incomingReliableCommands to the end of
+	 * peer->dispatchedCommands. Update channel->incomingReliableSequenceNumber according to
+	 * incomingCommand->reliableSequenceNumber.
 	 *
-	 * @param peer
-	 * @param channel
+	 * @param peer Which peer?
+	 * @param channel Which channel of the peer?
 	 */
 	void enet_peer_dispatch_incoming_reliable_commands(ENetPeer* peer, ENetChannel* channel)
 	{
@@ -5130,7 +5127,7 @@ extern "C"
 			goto discardCommand;
 		}
 
-		/// If reliable pakcet
+		// If reliable pakcet
 		if ((command->header.command & ENET_PROTOCOL_COMMAND_MASK) !=
 		    ENET_PROTOCOL_COMMAND_SEND_UNSEQUENCED)
 		{
@@ -5151,9 +5148,9 @@ extern "C"
 				reliableWindow += ENET_PEER_RELIABLE_WINDOWS;
 			}
 
-			/// discard old packets, actual packet dropping happens here
-			/// In what condition, the reliableWindow < currentWindow is
-			/// triggered?
+			// discard old packets, actual packet dropping happens here
+			// In what condition, the reliableWindow < currentWindow is
+			// triggered?
 			if (reliableWindow < currentWindow ||
 			    reliableWindow >= currentWindow + ENET_PEER_FREE_RELIABLE_WINDOWS - 1)
 			{
@@ -5170,8 +5167,8 @@ extern "C"
 				goto discardCommand;
 			}
 
-			/// iterate channel->incomingReliableCommands from last node to the
-			/// first node
+			// iterate channel->incomingReliableCommands from last node to the
+			// first node
 			for (currentCommand =
 			         enet_list_previous(enet_list_end(&channel->incomingReliableCommands));
 			     currentCommand != enet_list_end(&channel->incomingReliableCommands);
@@ -5184,9 +5181,9 @@ extern "C"
 					if (incomingCommand->reliableSequenceNumber <
 					    channel->incomingReliableSequenceNumber)
 					{
-						continue; /// incomingCommand->reliableSequenceNumber <
-						          /// channel->incomingReliableSequenceNumber <=
-						          /// reliableSequenceNumber
+						continue; // incomingCommand->reliableSequenceNumber <
+						          // channel->incomingReliableSequenceNumber <=
+						          // reliableSequenceNumber
 					}
 				}
 				else if (incomingCommand->reliableSequenceNumber >=
@@ -5199,12 +5196,12 @@ extern "C"
 				{
 					if (incomingCommand->reliableSequenceNumber < reliableSequenceNumber)
 					{
-						break; /// incomingCommand->reliableSequenceNumber <
-						       /// reliableSequenceNumber
+						break; // incomingCommand->reliableSequenceNumber <
+						       // reliableSequenceNumber
 					}
 
-					/// incomingCommand->reliableSequenceNumber ==
-					/// reliableSequenceNumber duplicate reliable command?
+					// incomingCommand->reliableSequenceNumber ==
+					// reliableSequenceNumber duplicate reliable command?
 					goto discardCommand;
 				}
 			}
