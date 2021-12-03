@@ -5176,32 +5176,35 @@ extern "C"
 			{
 				incomingCommand = (ENetIncomingCommand*)currentCommand;
 
+				// if new command arrives
 				if (reliableSequenceNumber >= channel->incomingReliableSequenceNumber)
 				{
 					if (incomingCommand->reliableSequenceNumber <
 					    channel->incomingReliableSequenceNumber)
 					{
-						continue; // incomingCommand->reliableSequenceNumber <
-						          // channel->incomingReliableSequenceNumber <=
-						          // reliableSequenceNumber
+						continue;
 					}
 				}
 				else if (incomingCommand->reliableSequenceNumber >=
 				         channel->incomingReliableSequenceNumber)
 				{
+					// if arrived command is roll-overed,
+					// append that command to the end of queued commands.
 					break;
 				}
 
+				// make sure incomingCommand->reliableSequenceNumber < reliableSequenceNumber
+				// so that the channel->incomingReliableCommands remains ascending sequence number.
 				if (incomingCommand->reliableSequenceNumber <= reliableSequenceNumber)
 				{
 					if (incomingCommand->reliableSequenceNumber < reliableSequenceNumber)
 					{
-						break; // incomingCommand->reliableSequenceNumber <
-						       // reliableSequenceNumber
+						// incomingCommand->reliableSequenceNumber < reliableSequenceNumber
+						// find the position for the packet to live
+						break;
 					}
 
-					// incomingCommand->reliableSequenceNumber ==
-					// reliableSequenceNumber duplicate reliable command?
+					// incomingCommand->reliableSequenceNumber == reliableSequenceNumber
 					goto discardCommand;
 				}
 			}
