@@ -764,7 +764,7 @@ extern "C"
 		                                 ENET_PEER_PACKET_LOSS_SCALE */
 		enet_uint32 packetLossVariance;
 		enet_uint32 packetThrottle;
-		enet_uint32 packetThrottleLimit;
+		enet_uint32 packetThrottleLimit; // packet throttle upper limit
 		enet_uint32 packetThrottleCounter;
 		enet_uint32 packetThrottleEpoch;
 		enet_uint32 packetThrottleAcceleration;
@@ -2793,6 +2793,15 @@ extern "C"
 		return 0;
 	}
 
+	/**
+	 * @brief
+	 *
+	 * @param host
+	 * @param event
+	 * @param peer
+	 * @param command
+	 * @return int
+	 */
 	static int enet_protocol_handle_acknowledge(ENetHost* host, ENetEvent* event, ENetPeer* peer,
 	                                            const ENetProtocol* command)
 	{
@@ -2820,12 +2829,13 @@ extern "C"
 		peer->earliestTimeout = 0;
 		roundTripTime = ENET_TIME_DIFFERENCE(host->serviceTime, receivedSentTime);
 
-		// based upon new rtt, we adjust the throttle according
+		// based upon new rtt, we adjust the throttle accordingly
 		enet_peer_throttle(peer, roundTripTime);
 		peer->roundTripTimeVariance -= peer->roundTripTimeVariance / 4;
 
 		if (roundTripTime >= peer->roundTripTime)
 		{
+			// why the magic number 8 and 4?
 			peer->roundTripTime += (roundTripTime - peer->roundTripTime) / 8;
 			peer->roundTripTimeVariance += (roundTripTime - peer->roundTripTime) / 4;
 		}
@@ -3092,13 +3102,13 @@ extern "C"
 		{
 			peer->address.host = host->receivedAddress.host;
 			peer->address.port = host->receivedAddress.port;
-			peer->incomingDataTotal += host->receivedDataLength; // ?
-			peer->totalDataReceived += host->receivedDataLength; // ?
+			peer->incomingDataTotal += host->receivedDataLength;
+			peer->totalDataReceived += host->receivedDataLength;
 		}
 
 		currentData = host->receivedData + headerSize;
 
-		// aggregate packets
+		// parse packets
 		while (currentData < &host->receivedData[host->receivedDataLength])
 		{
 			enet_uint8 commandNumber;
@@ -4157,6 +4167,13 @@ extern "C"
 		enet_peer_queue_outgoing_command(peer, &command, NULL, 0, 0);
 	}
 
+	/**
+	 * @brief Change the value of peer->packetThrottle.
+	 *
+	 * @param peer
+	 * @param rtt
+	 * @retval -1 0 1 Not used.
+	 */
 	int enet_peer_throttle(ENetPeer* peer, enet_uint32 rtt)
 	{
 		if (peer->lastRoundTripTime <= peer->lastRoundTripTimeVariance)
@@ -5095,7 +5112,7 @@ extern "C"
 	}
 
 	/**
-	 * @brief
+	 * @brief Enqueue valid incoming command. If not, discard the command instead.
 	 *
 	 * @param[in, out] peer On which peer to queue the incoming command.
 	 * @param command Incoming command extracted from received data.
@@ -5127,7 +5144,6 @@ extern "C"
 			goto discardCommand;
 		}
 
-		// If reliable pakcet
 		if ((command->header.command & ENET_PROTOCOL_COMMAND_MASK) !=
 		    ENET_PROTOCOL_COMMAND_SEND_UNSEQUENCED)
 		{
@@ -5149,8 +5165,6 @@ extern "C"
 			}
 
 			// discard old packets, actual packet dropping happens here
-			// In what condition, the reliableWindow < currentWindow is
-			// triggered?
 			if (reliableWindow < currentWindow ||
 			    reliableWindow >= currentWindow + ENET_PEER_FREE_RELIABLE_WINDOWS - 1)
 			{
@@ -5167,8 +5181,7 @@ extern "C"
 				goto discardCommand;
 			}
 
-			// iterate channel->incomingReliableCommands from last node to the
-			// first node
+			// iterate from last node to the first node
 			for (currentCommand =
 			         enet_list_previous(enet_list_end(&channel->incomingReliableCommands));
 			     currentCommand != enet_list_end(&channel->incomingReliableCommands);
@@ -5189,7 +5202,7 @@ extern "C"
 				         channel->incomingReliableSequenceNumber)
 				{
 					// if arrived command is roll-overed,
-					// append that command to the end of queued commands.
+					// append it to the end of queued commands.
 					break;
 				}
 
