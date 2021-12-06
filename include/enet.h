@@ -851,10 +851,10 @@ extern "C"
 	typedef struct _ENetHost
 	{
 		ENetSocket socket;
-		ENetAddress address;           /**< Internet address of the host */
-		enet_uint32 incomingBandwidth; /**< downstream bandwidth of the host */
-		enet_uint32 outgoingBandwidth; /**< upstream bandwidth of the host */
-		enet_uint32 bandwidthThrottleEpoch;
+		ENetAddress address;                /**< Internet address of the host */
+		enet_uint32 incomingBandwidth;      /**< downstream bandwidth of the host */
+		enet_uint32 outgoingBandwidth;      /**< upstream bandwidth of the host */
+		enet_uint32 bandwidthThrottleEpoch; // previous throttle epoch
 		enet_uint32 mtu;
 		enet_uint32 randomSeed;
 		int recalculateBandwidthLimits;
@@ -2794,13 +2794,14 @@ extern "C"
 	}
 
 	/**
-	 * @brief
+	 * @brief Handle ack command received from peer.
 	 *
 	 * @param host
 	 * @param event
 	 * @param peer
 	 * @param command
-	 * @return int
+	 * @retval 0 No operation or done
+	 * @retval -1 On error
 	 */
 	static int enet_protocol_handle_acknowledge(ENetHost* host, ENetEvent* event, ENetPeer* peer,
 	                                            const ENetProtocol* command)
@@ -2814,7 +2815,7 @@ extern "C"
 		}
 
 		receivedSentTime = ENET_NET_TO_HOST_16(command->acknowledge.receivedSentTime);
-		receivedSentTime |= host->serviceTime & 0xFFFF0000; // ???
+		receivedSentTime |= host->serviceTime & 0xFFFF0000;
 		if ((receivedSentTime & 0x8000) > (host->serviceTime & 0x8000))
 		{
 			receivedSentTime -= 0x10000;
@@ -3402,7 +3403,8 @@ extern "C"
 			command->header.channelID = acknowledgement->command.header.channelID;
 			command->header.reliableSequenceNumber = reliableSequenceNumber;
 			command->acknowledge.receivedReliableSequenceNumber = reliableSequenceNumber;
-			command->acknowledge.receivedSentTime = ENET_HOST_TO_NET_16(acknowledgement->sentTime);
+			command->acknowledge.receivedSentTime =
+			    ENET_HOST_TO_NET_16(acknowledgement->sentTime); // only reserve the lower 16 bit
 
 			if ((acknowledgement->command.header.command & ENET_PROTOCOL_COMMAND_MASK) ==
 			    ENET_PROTOCOL_COMMAND_DISCONNECT)
@@ -4012,7 +4014,7 @@ extern "C"
 
 		do
 		{
-			// ???
+			// after specific interval, we throttle bandwith
 			if (ENET_TIME_DIFFERENCE(host->serviceTime, host->bandwidthThrottleEpoch) >=
 			    ENET_HOST_BANDWIDTH_THROTTLE_INTERVAL)
 			{

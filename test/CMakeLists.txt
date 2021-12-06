@@ -31,3 +31,7 @@ target_link_libraries(protocol_handle_send_reliable_test PRIVATE gtest_main)
 
 add_executable(protocol_handle_acknowledge_test ProtocolHandleAcknowledgeTest.cpp ${ENET_HEADER})
 target_link_libraries(protocol_handle_acknowledge_test PRIVATE gtest_main)
+
+# facility test
+add_executable(time_test TimeTest.cpp ${ENET_HEADER})
+target_link_libraries(time_test PRIVATE gtest_main pthread)
